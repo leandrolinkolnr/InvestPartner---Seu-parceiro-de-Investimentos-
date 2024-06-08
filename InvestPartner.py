@@ -203,23 +203,27 @@ tools = [
 ]
 
 
-@st.cache_resource
-def criar_assistente_e_thread():
-    assistant = client.beta.assistants.create(
-    name="Assistente Financeiro",
-    instructions="Você é um assistente pessoal de investimentos especializado na área de ações da bolsa de valores do Brasil. \
-                  Sua função é responder perguntas dos usuários relacionadas ao mercado de ações brasileiro. Utilize as \
-                  ferramentas e funções disponíveis, juntamente com a API Yfinance, para fornecer respostas precisas e \
-                  relevantes. Certifique-se de oferecer informações atualizadas e insights úteis para auxiliar os usuários em \
-                  suas decisões de investimento. Priorize a clareza e a precisão em suas respostas, garantindo uma experiência \
-                  satisfatória para os usuários que buscam orientação no mercado de ações brasileiro.",
-    #model="gpt-4o",
-    model = "gpt-3.5-turbo-0125",
-    tools=tools
-)
-    thread = client.beta.threads.create()
-    return assistant, thread
 
+# assistant = client.beta.assistants.create(
+#     name="Assistente Financeiro",
+#     instructions="Você é um assistente pessoal de investimentos especializado na área de ações da bolsa de valores do Brasil. \
+#                   Sua função é responder perguntas dos usuários relacionadas ao mercado de ações brasileiro. Utilize as \
+#                   ferramentas e funções disponíveis, juntamente com a API Yfinance, para fornecer respostas precisas e \
+#                   relevantes. Certifique-se de oferecer informações atualizadas e insights úteis para auxiliar os usuários em \
+#                   suas decisões de investimento. Priorize a clareza e a precisão em suas respostas, garantindo uma experiência \
+#                   satisfatória para os usuários que buscam orientação no mercado de ações brasileiro.",
+#     #model="gpt-4o",
+#     model = "gpt-3.5-turbo-0125",
+#     tools=tools
+# )
+
+
+assistant_id = "asst_D72a8kRFXV99YSw4x8zKxS1Z"
+
+@st.cache_resource
+def criar_thread():
+    thread = client.beta.threads.create()
+    return thread
 
 
 
@@ -242,7 +246,7 @@ def retorna_resposta_modelo(mensagens):
 
     run = client.beta.threads.runs.create(
         thread_id=thread.id,
-        assistant_id=assistant.id,
+        assistant_id=assistant_id,
         instructions='Seja breve e conciso na resposta'  # Se tivesse privilegios Premuim, concederia.
     )
 
@@ -312,7 +316,7 @@ def pagina_principal():
     
     mensagens = st.session_state['mensagens']
 
-    st.header('🤖 Asimov Chatbot', divider=True)
+    st.header('🤖  InvestPartner', divider=True)
 
     for mensagem in mensagens:
         chat = st.chat_message(mensagem['role'])
@@ -341,5 +345,5 @@ def pagina_principal():
         st.session_state['mensagens'] = mensagens
 
 
-assistant, thread = criar_assistente_e_thread()
+thread = criar_thread()
 pagina_principal()
