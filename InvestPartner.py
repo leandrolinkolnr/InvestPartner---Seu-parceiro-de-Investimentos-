@@ -357,6 +357,17 @@ def converte_nome_mensagem(nome_mensagem):
     return  nome_arquivo
 
 
+def ler_mensagens(mensagens, key='mensagem'):
+    if len(mensagens) == 0:
+        return []
+    nome_mensagem = retorna_nome_da_mensagem(mensagens)
+    nome_arquivo = converte_nome_mensagem(nome_mensagem)
+    with open(PASTA_MENSAGENS / nome_arquivo, 'rb') as f:    # Lendo as mensagens que estao salvas
+        mensagens = pickle.load(f)
+    return mensagens[key]
+
+
+
 
 
 def pagina_principal():
@@ -365,7 +376,8 @@ def pagina_principal():
     if not 'mensagens' in st.session_state:
         st.session_state.mensagens = []
     
-    mensagens = st.session_state['mensagens']
+    #mensagens = st.session_state['mensagens']
+    mensagens = ler_mensagens(st.session_state['mensagens'])
 
     st.header('🤖  InvestPartner', divider=True)
 
