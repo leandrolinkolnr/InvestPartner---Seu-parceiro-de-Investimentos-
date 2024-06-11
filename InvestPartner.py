@@ -4,16 +4,27 @@ from dotenv import load_dotenv, find_dotenv
 import time
 import yfinance as yf
 import json
+from unidecode import unidecode
+import re
+import pickle
+from pathlib import Path
+
+
+PASTA_MENSAGENS = Path(__file__).parent / 'mensagens'    # Pegando o caminho atual e salvando na pasta 'mensagens'
+PASTA_MENSAGENS.mkdir(exist_ok=True)                    # Criando a pasta
 
 
 @st.cache_resource
 def iniciaClient():
+
     _ = load_dotenv(find_dotenv())
 
     client = openai.Client()
     return client
 
 client = iniciaClient()
+
+
 
 @st.cache_data
 def retorna_cotacao_acao_historica(
@@ -316,6 +327,37 @@ def retorna_resposta_modelo(mensagens):
 
 
 
+def salvar_mensagens(mensagens):
+    if len(mensagens) == 0:   # Se nao existir mensagem, retorne false
+        return False
+    nome_mensagem = retorna_nome_da_mensagem(mensagens)
+    nome_arquivo = converte_nome_mensagem(nome_mensagem)
+    arquivo_salvar = {'nome_mensagem': nome_mensagem,
+                      'nome_arquivo': nome_arquivo,
+                      'mensagem': mensagens}
+    
+    # Um arquivo pickle é um formato para salvar (serializar) e carregar (desserializar) objetos de forma eficiente. 
+    # É útil para para compartilhar dados entre diferentes execuções de um programa.
+    with open(PASTA_MENSAGENS / nome_arquivo, 'wb') as f:   
+        pickle.dump(arquivo_salvar, f)              # Salvando cmo arquivo pickle no caminho ja definido
+
+
+def retorna_nome_da_mensagem(mensagens):
+    nome_mensagem = ''
+    for mensagem in mensagens:
+        if mensagem['role'] == 'user':   # PEgar mensagem do usuario
+            nome_mensagem = mensagem['content'][:30]   # So ate 30 caracteres 
+            break
+    return nome_mensagem
+
+
+def converte_nome_mensagem(nome_mensagem):
+    nome_arquivo = unidecode(nome_mensagem)           # Removendo acentos
+    nome_arquivo = re.sub('\W+', '', nome_arquivo).lower()  # Removendo espaços e caracteres especiais
+    return  nome_arquivo
+
+
+
 
 def pagina_principal():
 
@@ -343,8 +385,7 @@ def pagina_principal():
         chat = st.chat_message('assistant')
         placeholder = chat.empty()
         placeholder.markdown("▌")
-        respostas = retorna_resposta_modelo(prompt)   # Mandando so a mensagem
-
+        respostas = retorna_resposta_modelo(prompt) 
 
         placeholder.markdown(respostas)
 
@@ -353,6 +394,8 @@ def pagina_principal():
 
 
         st.session_state['mensagens'] = mensagens
+
+        salvar_mensagens(mensagens)
 
 
 
