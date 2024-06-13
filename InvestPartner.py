@@ -18,12 +18,16 @@ PASTA_MENSAGENS.mkdir(exist_ok=True)                    # Criando a pasta
 def iniciaClient():
     _ = load_dotenv(find_dotenv())
     client = openai.Client()
+
+    _ = yf.Ticker("ABEV3.SA").history(period='1d')['Close'] # Iniciando API
+    
     return client
 
 client = iniciaClient()
 
 @st.cache_data
 def retorna_cotacao_acao_historica(ticker, periodo='1mo'):
+
     ticker = yf.Ticker(ticker)
     hist = ticker.history(period=periodo)['Close']
     #hist.index = hist.index.strftime('%Y-%m-%d')
@@ -34,6 +38,7 @@ def retorna_cotacao_acao_historica(ticker, periodo='1mo'):
         hist = hist.iloc[::-slice_size][::-1]
 
     return hist.to_json()
+
 
 @st.cache_data
 def retorna_info(ticker):
@@ -214,8 +219,11 @@ def criar_thread():
     thread = client.beta.threads.create()
     return thread
 
+
+
 async def retorna_resposta_modelo(mensagens):
-    start_time = time.time()
+    
+    
     thread = criar_thread()
 
     await asyncio.to_thread(client.beta.threads.messages.create,
@@ -234,7 +242,7 @@ async def retorna_resposta_modelo(mensagens):
                                   instructions='Seja breve e conciso na resposta')
 
     while run.status in ['queued', 'in_progress', 'cancelling']:
-        await asyncio.sleep(0.1)
+        #await asyncio.sleep(0.1)
         run = await asyncio.to_thread(client.beta.threads.runs.retrieve,
                                       thread_id=thread.id,
                                       run_id=run.id)
@@ -242,7 +250,7 @@ async def retorna_resposta_modelo(mensagens):
     if run.status == 'completed':
         messages = await asyncio.to_thread(client.beta.threads.messages.list,
                                            thread_id=thread.id)
-        print(messages)
+
 
     tool_outputs = []
     tool_calls = run.required_action.submit_tool_outputs.tool_calls
@@ -281,8 +289,10 @@ async def retorna_resposta_modelo(mensagens):
     else:
         print(run.status)
 
-    #print(f"Tempo total de resposta: {time.time() - start_time} segundos")
+
     return resposta
+
+
 
 def salvar_mensagens(mensagens):
     if len(mensagens) == 0:
@@ -348,5 +358,7 @@ def pagina_principal():
         chat = st.chat_message('user')
         chat.markdown(prompt)
         asyncio.run(processa_mensagens(prompt))
+
+
 
 pagina_principal()
