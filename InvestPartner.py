@@ -13,6 +13,7 @@ import concurrent.futures
 
 PASTA_MENSAGENS = Path(__file__).parent / 'mensagens'    # Pegando o caminho atual e salvando na pasta 'mensagens'
 PASTA_MENSAGENS.mkdir(exist_ok=True)                    # Criando a pasta
+CACHE_DESCONVERTE = {}
 
 @st.cache_resource
 def iniciaClient():
@@ -20,6 +21,10 @@ def iniciaClient():
     client = openai.Client()
 
     _ = yf.Ticker("ABEV3.SA").history(period='1d')['Close'] # Iniciando API
+    if not 'conversa_atual' in st.session_state:
+        st.session_state.conversa_atual = ''
+
+    # Atencao AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
     
     return client
 
@@ -359,6 +364,63 @@ def pagina_principal():
         chat.markdown(prompt)
         asyncio.run(processa_mensagens(prompt))
 
+def tab_conversas(tab):
+    tab.button('➕ Nova conversa',                  # Iniciando nova conversa
+                on_click=seleciona_conversa,
+                args=('', ),
+                use_container_width=True)
+    tab.markdown('')
+
+    conversas = listar_conversas()                  # Listando conversas existentes
+
+    for nome_arquivo in conversas:
+        nome_mensagem = desconverte_nome_mensagem(nome_arquivo).capitalize()
+        if len(nome_mensagem) == 30:
+            nome_mensagem += '...'
+        tab.button(nome_mensagem,
+            on_click=seleciona_conversa,
+            args=(nome_arquivo, ),
+            disabled=nome_arquivo==st.session_state['conversa_atual'],
+            use_container_width=True)
 
 
-pagina_principal()
+def desconverte_nome_mensagem(nome_arquivo):
+    if not nome_arquivo in CACHE_DESCONVERTE:
+        nome_mensagem = ler_mensagem_por_nome_arquivo(nome_arquivo, key='nome_mensagem')
+        CACHE_DESCONVERTE[nome_arquivo] = nome_mensagem
+    return CACHE_DESCONVERTE[nome_arquivo]
+
+
+def listar_conversas():             # Listar todas as conversas salvas no diretorio
+    conversas = list(PASTA_MENSAGENS.glob('*'))  
+    conversas = sorted(conversas, key=lambda item: item.stat().st_mtime_ns, reverse=True)   # Sort por mais recentes
+    return [c.stem for c in conversas]
+
+
+def ler_mensagem_por_nome_arquivo(nome_arquivo, key='mensagem'):
+    with open(PASTA_MENSAGENS / nome_arquivo, 'rb') as f:
+        mensagens = pickle.load(f)
+    return mensagens[key]
+
+
+def seleciona_conversa(nome_arquivo):
+    if nome_arquivo == '':
+        st.session_state['mensagens'] = []
+    else:
+        mensagem = ler_mensagem_por_nome_arquivo(nome_arquivo)
+        st.session_state['mensagens'] = mensagem
+    st.session_state['conversa_atual'] = nome_arquivo
+
+
+
+
+def main():
+    #inicializacao()
+    pagina_principal()
+    tab1, tab2 = st.sidebar.tabs(['Conversas', 'Configurações'])   # Adiciondo SideBar
+    tab_conversas(tab1)
+
+
+
+if __name__ == '__main__':
+    main()
