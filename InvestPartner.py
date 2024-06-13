@@ -8,96 +8,65 @@ from unidecode import unidecode
 import re
 import pickle
 from pathlib import Path
-
+import asyncio
+import concurrent.futures
 
 PASTA_MENSAGENS = Path(__file__).parent / 'mensagens'    # Pegando o caminho atual e salvando na pasta 'mensagens'
 PASTA_MENSAGENS.mkdir(exist_ok=True)                    # Criando a pasta
 
-
 @st.cache_resource
 def iniciaClient():
-
     _ = load_dotenv(find_dotenv())
-
     client = openai.Client()
     return client
 
 client = iniciaClient()
 
-
-
 @st.cache_data
-def retorna_cotacao_acao_historica(
-        ticker,
-        periodo='1mo'
-):
-    
+def retorna_cotacao_acao_historica(ticker, periodo='1mo'):
     ticker = yf.Ticker(ticker)
     hist = ticker.history(period=periodo)['Close']
-    hist.index = hist.index.strftime('%Y-%m-%d')  # Formata o índice do DataFrame hist para strings no formato 'AAAA-MM-DD'.
-    hist = round(hist, 2)   
-    
-    # Verifica se o DataFrame tem mais de 30 registros. Se tiver,  calcula um slice_size (tamanho fatia) dividindo por 30.
-    # E reduz tamanho pegando um registro a cada slice_size, começando do final e revertendo para manter na sequência original.
-    
+    #hist.index = hist.index.strftime('%Y-%m-%d')
+    #hist = round(hist, 2)
+
     if len(hist) > 30:
         slice_size = int(len(hist) / 30)
         hist = hist.iloc[::-slice_size][::-1]
-    
-        
-    return hist.to_json() # Passar como dicionario, e não como DF
 
-
-
+    return hist.to_json()
 
 @st.cache_data
 def retorna_info(ticker):
-    
     ticker = yf.Ticker(ticker)
     info = str(ticker.info)
-        
     return info
-
-
 
 @st.cache_data
 def retorna_metadados(ticker, periodo):
-    
     ticker = yf.Ticker(ticker)
-    hist = ticker.history(period=periodo)
+    #hist = ticker.history(period=periodo)
     metadados = str(ticker.history_metadata)
-        
     return metadados
-
-
-
 
 @st.cache_data
 def retorna_noticias(ticker):
     ticker = yf.Ticker(ticker)
     noticias = str(ticker.news)
-    
     return noticias
-
-
 
 @st.cache_data
 def retorna_desdobramentos(ticker):
     ticker = yf.Ticker(ticker)
     desdobramentos = ticker.splits
-    
     return desdobramentos.to_json()
 
-
-
-
-# Mapeando função
-funcoes_disponiveis = {'retorna_cotacao_acao_historica': retorna_cotacao_acao_historica,
-                      'retorna_info': retorna_info,
-                      'retorna_metadados': retorna_metadados,
-                       'retorna_noticias': retorna_noticias,
-                       'retorna_desdobramentos': retorna_desdobramentos}
-
+funcoes_disponiveis = {
+    'retorna_cotacao_acao_historica': retorna_cotacao_acao_historica,
+    'retorna_info': retorna_info,
+    'retorna_metadados': retorna_metadados,
+    'retorna_noticias': retorna_noticias,
+    'retorna_desdobramentos': retorna_desdobramentos
+}
 
 
 # def dispoe_tools():
@@ -236,6 +205,8 @@ funcoes_disponiveis = {'retorna_cotacao_acao_historica': retorna_cotacao_acao_hi
 # )
 
 
+
+
 assistant_id = "asst_D72a8kRFXV99YSw4x8zKxS1Z"
 
 @st.cache_resource
@@ -243,172 +214,139 @@ def criar_thread():
     thread = client.beta.threads.create()
     return thread
 
-
-
-
-def retorna_resposta_modelo(mensagens):
-
+async def retorna_resposta_modelo(mensagens):
+    start_time = time.time()
     thread = criar_thread()
-    
-    client.beta.threads.messages.create(  
-        thread_id=thread.id,
-        role='user',
-        content=[
-        {
-            "type": "text",  
-            "text": mensagens  
-            
-        }
-    ]
-    )
 
+    await asyncio.to_thread(client.beta.threads.messages.create,
+                            thread_id=thread.id,
+                            role='user',
+                            content=[
+                                {
+                                    "type": "text",
+                                    "text": mensagens
+                                }
+                            ])
 
-
-    run = client.beta.threads.runs.create(
-        thread_id=thread.id,
-        assistant_id=assistant_id,
-        instructions='Seja breve e conciso na resposta'  # Se tivesse privilegios Premuim, concederia.
-    )
-
+    run = await asyncio.to_thread(client.beta.threads.runs.create,
+                                  thread_id=thread.id,
+                                  assistant_id=assistant_id,
+                                  instructions='Seja breve e conciso na resposta')
 
     while run.status in ['queued', 'in_progress', 'cancelling']:
-        time.sleep(0.1)
-        run = client.beta.threads.runs.retrieve(
-            thread_id=thread.id,
-            run_id=run.id
-        )
-
+        await asyncio.sleep(0.1)
+        run = await asyncio.to_thread(client.beta.threads.runs.retrieve,
+                                      thread_id=thread.id,
+                                      run_id=run.id)
 
     if run.status == 'completed':
-        messages = client.beta.threads.messages.list(
-        thread_id=thread.id
-      )
+        messages = await asyncio.to_thread(client.beta.threads.messages.list,
+                                           thread_id=thread.id)
         print(messages)
 
-
     tool_outputs = []
-
     tool_calls = run.required_action.submit_tool_outputs.tool_calls
 
     if tool_calls:
-        for tool in tool_calls:
-            func_name = tool.function.name
-            function_to_call = funcoes_disponiveis[func_name]
-            func_args = json.loads(tool.function.arguments)
-            func_return = function_to_call(**func_args)  # Passa todos os parametros do 'func_args', para a function_to_call
-            tool_outputs.append({
-                'tool_call_id': tool.id,
-                'output': func_return
-            })
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            futures = []
+            for tool in tool_calls:
+                func_name = tool.function.name
+                function_to_call = funcoes_disponiveis[func_name]
+                func_args = json.loads(tool.function.arguments)
+                futures.append(executor.submit(function_to_call, **func_args))
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    tool_output = future.result()
+                    tool_outputs.append({
+                        'tool_call_id': tool.id,
+                        'output': tool_output
+                    })
+                except Exception as e:
+                    print(f"Error in tool execution: {e}")
 
-
-    # Submit all tool outputs at once after collecting them in a list
     if tool_outputs:
         try:
-            run = client.beta.threads.runs.submit_tool_outputs_and_poll(
-            thread_id=thread.id,
-            run_id=run.id,
-            tool_outputs=tool_outputs
-        )
+            run = await asyncio.to_thread(client.beta.threads.runs.submit_tool_outputs_and_poll,
+                                          thread_id=thread.id,
+                                          run_id=run.id,
+                                          tool_outputs=tool_outputs)
         except Exception as e:
             print("Failed to submit tool outputs:", e)
 
     if run.status == 'completed':
-        messages = client.beta.threads.messages.list(
-        thread_id=thread.id
-      )
+        messages = await asyncio.to_thread(client.beta.threads.messages.list,
+                                           thread_id=thread.id)
         resposta = messages.data[0].content[0].text.value
     else:
         print(run.status)
 
+    #print(f"Tempo total de resposta: {time.time() - start_time} segundos")
     return resposta
 
-
-
-
-
 def salvar_mensagens(mensagens):
-    if len(mensagens) == 0:   # Se nao existir mensagem, retorne false
+    if len(mensagens) == 0:
         return False
     nome_mensagem = retorna_nome_da_mensagem(mensagens)
     nome_arquivo = converte_nome_mensagem(nome_mensagem)
     arquivo_salvar = {'nome_mensagem': nome_mensagem,
                       'nome_arquivo': nome_arquivo,
                       'mensagem': mensagens}
-    
-    # Um arquivo pickle é um formato para salvar (serializar) e carregar (desserializar) objetos de forma eficiente. 
-    # É útil para para compartilhar dados entre diferentes execuções de um programa.
-    with open(PASTA_MENSAGENS / nome_arquivo, 'wb') as f:   
-        pickle.dump(arquivo_salvar, f)              # Salvando cmo arquivo pickle no caminho ja definido
 
+    with open(PASTA_MENSAGENS / nome_arquivo, 'wb') as f:
+        pickle.dump(arquivo_salvar, f)
 
 def retorna_nome_da_mensagem(mensagens):
     nome_mensagem = ''
     for mensagem in mensagens:
-        if mensagem['role'] == 'user':   # PEgar mensagem do usuario
-            nome_mensagem = mensagem['content'][:30]   # So ate 30 caracteres 
+        if mensagem['role'] == 'user':
+            nome_mensagem = mensagem['content'][:30]
             break
     return nome_mensagem
 
-
 def converte_nome_mensagem(nome_mensagem):
-    nome_arquivo = unidecode(nome_mensagem)           # Removendo acentos
-    nome_arquivo = re.sub('\W+', '', nome_arquivo).lower()  # Removendo espaços e caracteres especiais
-    return  nome_arquivo
-
+    nome_arquivo = unidecode(nome_mensagem)
+    nome_arquivo = re.sub('\W+', '', nome_arquivo).lower()
+    return nome_arquivo
 
 def ler_mensagens(mensagens, key='mensagem'):
     if len(mensagens) == 0:
         return []
     nome_mensagem = retorna_nome_da_mensagem(mensagens)
     nome_arquivo = converte_nome_mensagem(nome_mensagem)
-    with open(PASTA_MENSAGENS / nome_arquivo, 'rb') as f:    # Lendo as mensagens que estao salvas
+    with open(PASTA_MENSAGENS / nome_arquivo, 'rb') as f:
         mensagens = pickle.load(f)
     return mensagens[key]
 
+async def processa_mensagens(prompt):
+    nova_mensagem = {'role': 'user', 'content': prompt}
+    st.session_state['mensagens'].append(nova_mensagem)
 
+    chat = st.chat_message('assistant')
+    placeholder = chat.empty()
+    placeholder.markdown("▌")
+    respostas = await retorna_resposta_modelo(prompt)
+    placeholder.markdown(respostas)
 
-
+    nova_mensagem = {'role': 'assistant', 'content': respostas}
+    st.session_state['mensagens'].append(nova_mensagem)
+    salvar_mensagens(st.session_state['mensagens'])
 
 def pagina_principal():
-
-
-    if not 'mensagens' in st.session_state:
+    if 'mensagens' not in st.session_state:
         st.session_state.mensagens = []
-    
-    #mensagens = st.session_state['mensagens']
+
     mensagens = ler_mensagens(st.session_state['mensagens'])
-
     st.header('🤖  InvestPartner', divider=True)
-
 
     for mensagem in mensagens:
         chat = st.chat_message(mensagem['role'])
         chat.markdown(mensagem['content'])
-    
+
     prompt = st.chat_input('Pergunte ao seu parceiro de investimentos! :)')
     if prompt:
-        nova_mensagem = {'role': 'user',
-                         'content': prompt}
-        chat = st.chat_message(nova_mensagem['role'])
-        chat.markdown(nova_mensagem['content'])
-        mensagens.append(nova_mensagem)
-
-        chat = st.chat_message('assistant')
-        placeholder = chat.empty()
-        placeholder.markdown("▌")
-        respostas = retorna_resposta_modelo(prompt) 
-
-        placeholder.markdown(respostas)
-
-        nova_mensagem = {'role': 'assistant', 'content': respostas}
-        mensagens.append(nova_mensagem)
-
-
-        st.session_state['mensagens'] = mensagens
-
-        salvar_mensagens(mensagens)
-
-
+        chat = st.chat_message('user')
+        chat.markdown(prompt)
+        asyncio.run(processa_mensagens(prompt))
 
 pagina_principal()
