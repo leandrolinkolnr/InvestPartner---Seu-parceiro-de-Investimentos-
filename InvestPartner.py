@@ -15,20 +15,37 @@ PASTA_MENSAGENS = Path(__file__).parent / 'mensagens'    # Pegando o caminho atu
 PASTA_MENSAGENS.mkdir(exist_ok=True)                    # Criando a pasta
 CACHE_DESCONVERTE = {}
 
+
+
+@st.cache_resource
+def inicializacao():
+
+    _ = yf.Ticker("ABEV3.SA").history(period='1d')['Close']  # Iniciando API
+
+    if not 'mensagens' in st.session_state:
+        st.session_state.mensagens = []
+    if not 'conversa_atual' in st.session_state:
+        st.session_state.conversa_atual = ''
+    if not 'modelo' in st.session_state:
+        st.session_state.modelo = 'gpt-3.5-turbo'
+    #if not 'api_key' in st.session_state:
+        #st.session_state.api_key = le_chave()
+
+
 @st.cache_resource
 def iniciaClient():
     _ = load_dotenv(find_dotenv())
     client = openai.Client()
-
-    _ = yf.Ticker("ABEV3.SA").history(period='1d')['Close'] # Iniciando API
-    if not 'conversa_atual' in st.session_state:
-        st.session_state.conversa_atual = ''
-
-    # Atencao AQUIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
     
     return client
 
+
 client = iniciaClient()
+
+
+
+# ==========================   Funções e Ferramentas  ========================== 
+
 
 @st.cache_data
 def retorna_cotacao_acao_historica(ticker, periodo='1mo'):
@@ -58,11 +75,13 @@ def retorna_metadados(ticker, periodo):
     metadados = str(ticker.history_metadata)
     return metadados
 
+
 @st.cache_data
 def retorna_noticias(ticker):
     ticker = yf.Ticker(ticker)
     noticias = str(ticker.news)
     return noticias
+
 
 @st.cache_data
 def retorna_desdobramentos(ticker):
@@ -228,7 +247,6 @@ def criar_thread():
 
 async def retorna_resposta_modelo(mensagens):
     
-    
     thread = criar_thread()
 
     await asyncio.to_thread(client.beta.threads.messages.create,
@@ -299,6 +317,53 @@ async def retorna_resposta_modelo(mensagens):
 
 
 
+
+
+
+def pagina_principal():
+    if 'mensagens' not in st.session_state:
+        st.session_state.mensagens = []
+
+    mensagens = ler_mensagens(st.session_state['mensagens'])
+    st.header('🤖  InvestPartner', divider=True)
+
+    for mensagem in mensagens:
+        chat = st.chat_message(mensagem['role'])
+        chat.markdown(mensagem['content'])
+
+    prompt = st.chat_input('Pergunte ao seu parceiro de investimentos! :)')
+    if prompt:
+        chat = st.chat_message('user')
+        chat.markdown(prompt)
+        asyncio.run(processa_mensagens(prompt))
+
+
+
+
+
+# ==========================  Salvamento e Leitura das Conversas  ========================== 
+
+
+def tab_conversas(tab):
+    tab.button('➕ Nova conversa',                  # Iniciando nova conversa
+                on_click=seleciona_conversa,
+                args=('', ),
+                use_container_width=True)
+    tab.markdown('')
+
+    conversas = listar_conversas()                  # Listando conversas existentes
+
+    for nome_arquivo in conversas:
+        nome_mensagem = desconverte_nome_mensagem(nome_arquivo).capitalize()
+        if len(nome_mensagem) == 30:
+            nome_mensagem += '...'
+        tab.button(nome_mensagem,
+            on_click=seleciona_conversa,
+            args=(nome_arquivo, ),
+            disabled=nome_arquivo==st.session_state['conversa_atual'],
+            use_container_width=True)
+
+
 def salvar_mensagens(mensagens):
     if len(mensagens) == 0:
         return False
@@ -333,6 +398,7 @@ def ler_mensagens(mensagens, key='mensagem'):
         mensagens = pickle.load(f)
     return mensagens[key]
 
+
 async def processa_mensagens(prompt):
     nova_mensagem = {'role': 'user', 'content': prompt}
     st.session_state['mensagens'].append(nova_mensagem)
@@ -347,45 +413,8 @@ async def processa_mensagens(prompt):
     st.session_state['mensagens'].append(nova_mensagem)
     salvar_mensagens(st.session_state['mensagens'])
 
-def pagina_principal():
-    if 'mensagens' not in st.session_state:
-        st.session_state.mensagens = []
-
-    mensagens = ler_mensagens(st.session_state['mensagens'])
-    st.header('🤖  InvestPartner', divider=True)
-
-    for mensagem in mensagens:
-        chat = st.chat_message(mensagem['role'])
-        chat.markdown(mensagem['content'])
-
-    prompt = st.chat_input('Pergunte ao seu parceiro de investimentos! :)')
-    if prompt:
-        chat = st.chat_message('user')
-        chat.markdown(prompt)
-        asyncio.run(processa_mensagens(prompt))
-
-def tab_conversas(tab):
-    tab.button('➕ Nova conversa',                  # Iniciando nova conversa
-                on_click=seleciona_conversa,
-                args=('', ),
-                use_container_width=True)
-    tab.markdown('')
-
-    conversas = listar_conversas()                  # Listando conversas existentes
-
-    for nome_arquivo in conversas:
-        nome_mensagem = desconverte_nome_mensagem(nome_arquivo).capitalize()
-        if len(nome_mensagem) == 30:
-            nome_mensagem += '...'
-        tab.button(nome_mensagem,
-            on_click=seleciona_conversa,
-            args=(nome_arquivo, ),
-            disabled=nome_arquivo==st.session_state['conversa_atual'],
-            use_container_width=True)
-
-
-def desconverte_nome_mensagem(nome_arquivo):
-    if not nome_arquivo in CACHE_DESCONVERTE:
+def desconverte_nome_mensagem(nome_arquivo):    # Recolocando acentos, caracteres, etc
+    if not nome_arquivo in CACHE_DESCONVERTE:    
         nome_mensagem = ler_mensagem_por_nome_arquivo(nome_arquivo, key='nome_mensagem')
         CACHE_DESCONVERTE[nome_arquivo] = nome_mensagem
     return CACHE_DESCONVERTE[nome_arquivo]
@@ -415,7 +444,7 @@ def seleciona_conversa(nome_arquivo):
 
 
 def main():
-    #inicializacao()
+    inicializacao()
     pagina_principal()
     tab1, tab2 = st.sidebar.tabs(['Conversas', 'Configurações'])   # Adiciondo SideBar
     tab_conversas(tab1)
