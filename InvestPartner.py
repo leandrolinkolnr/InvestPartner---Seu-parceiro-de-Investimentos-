@@ -96,142 +96,142 @@ funcoes_disponiveis = {
 }
 
 
-@st.cache_resource
-def dispoe_tools():
-    tools = [
-        {
-            'type': 'function',
-            'function': {
-                'name': 'retorna_cotacao_acao_historica',
-                'description': 'Retorna a cotação diária histórica para uma ação da bovespa',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'ticker': {
-                            'type': 'string',
-                            'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
-                        },
-                        'periodo': {
-                            'type': 'string',
-                            'description': 'O período que será retornado de dados históriocos \
-                                            sendo "1mo" equivalente a um mês de dados, "1d" a \
-                                            1 dia e "1y" a 1 ano',
-                            'enum': ["1d","5d","1mo","6mo","1y","5y","10y","ytd","max"]  # API so aceita esses dias
-                        }
-                    }
-                }
-            }
-        },
+# @st.cache_resource
+# def dispoe_tools():
+#     tools = [
+#         {
+#             'type': 'function',
+#             'function': {
+#                 'name': 'retorna_cotacao_acao_historica',
+#                 'description': 'Retorna a cotação diária histórica para uma ação da bovespa',
+#                 'parameters': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'ticker': {
+#                             'type': 'string',
+#                             'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
+#                         },
+#                         'periodo': {
+#                             'type': 'string',
+#                             'description': 'O período que será retornado de dados históriocos \
+#                                             sendo "1mo" equivalente a um mês de dados, "1d" a \
+#                                             1 dia e "1y" a 1 ano',
+#                             'enum': ["1d","5d","1mo","6mo","1y","5y","10y","ytd","max"]  # API so aceita esses dias
+#                         }
+#                     }
+#                 }
+#             }
+#         },
         
         
         
         
         
-        {
-            'type': 'function',
-            'function': {
-                'name': 'retorna_info',
-                'description': 'Retorna informações gerais sobre uma ação, incluindo uma variedade de dados, \
-                como o nome da empresa, setor da indústria, descrição da empresa, país de origem, e mais. É útil para obter \
-                uma visão geral rápida e detalhes básicos sobre a empresa associada ao ticker fornecido.',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'ticker': {
-                            'type': 'string',
-                            'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
-                        }
-                    }
-                }
-            }
-        },
+#         {
+#             'type': 'function',
+#             'function': {
+#                 'name': 'retorna_info',
+#                 'description': 'Retorna informações gerais sobre uma ação, incluindo uma variedade de dados, \
+#                 como o nome da empresa, setor da indústria, descrição da empresa, país de origem, e mais. É útil para obter \
+#                 uma visão geral rápida e detalhes básicos sobre a empresa associada ao ticker fornecido.',
+#                 'parameters': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'ticker': {
+#                             'type': 'string',
+#                             'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
+#                         }
+#                     }
+#                 }
+#             }
+#         },
         
         
-        {
-            'type': 'function',
-            'function': {
-                'name': 'retorna_metadados',
-                'description': 'Fornece informações, de acordo com a data fornecida, sobre os dados históricos disponíveis para \
-                uma ação, incluindo o intervalo de datas disponíveis, os tipos de preços incluídos  (como abertura, fechamento, \
-                máximos, mínimos e volume), divisões de ações, ajustes de dividendos e outros eventos corporativos relevantes. \
-                Essas informações são úteis para entender a qualidade e o escopo dos dados históricos disponíveis.',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'ticker': {
-                            'type': 'string',
-                            'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
-                        },
-                        'periodo': {
-                            'type': 'string',
-                            'description': 'O período que será retornado de dados históriocos \
-                                            sendo "1mo" equivalente a um mês de dados, "1d" a \
-                                            1 dia e "1y" a 1 ano',
-                            'enum': ["1d","5d","1mo","6mo","1y","5y","10y","ytd","max"]  # API so aceita esses dias
-                        }
-                    }
-                }
-            }
-        },
+#         {
+#             'type': 'function',
+#             'function': {
+#                 'name': 'retorna_metadados',
+#                 'description': 'Fornece informações, de acordo com a data fornecida, sobre os dados históricos disponíveis para \
+#                 uma ação, incluindo o intervalo de datas disponíveis, os tipos de preços incluídos  (como abertura, fechamento, \
+#                 máximos, mínimos e volume), divisões de ações, ajustes de dividendos e outros eventos corporativos relevantes. \
+#                 Essas informações são úteis para entender a qualidade e o escopo dos dados históricos disponíveis.',
+#                 'parameters': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'ticker': {
+#                             'type': 'string',
+#                             'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
+#                         },
+#                         'periodo': {
+#                             'type': 'string',
+#                             'description': 'O período que será retornado de dados históriocos \
+#                                             sendo "1mo" equivalente a um mês de dados, "1d" a \
+#                                             1 dia e "1y" a 1 ano',
+#                             'enum': ["1d","5d","1mo","6mo","1y","5y","10y","ytd","max"]  # API so aceita esses dias
+#                         }
+#                     }
+#                 }
+#             }
+#         },
         
-        {
-            'type': 'function',
-            'function': {
-                'name': 'retorna_noticias',
-                'description': 'retorna uma lista de notícias recentes relacionadas à empresa. Ele fornece manchetes, datas e links para artigos sobre a empresa cujas ações são negociadas na bolsa',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'ticker': {
-                            'type': 'string',
-                            'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
-                        }
-                    }
-                }
-            }
-        },
-        
-        
-        {
-            'type': 'function',
-            'function': {
-                'name': 'retorna_desdobramentos',
-                'description': 'retorna uma série temporal contendo os históricos de desdobramentos (splits) de ações de uma empresa. Ele fornece as datas e as razões dos splits ocorridos ao longo do tempo para uma determinada ação listada na bolsa.',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'ticker': {
-                            'type': 'string',
-                            'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
-                        }
-                    }
-                }
-            }
-        },
+#         {
+#             'type': 'function',
+#             'function': {
+#                 'name': 'retorna_noticias',
+#                 'description': 'retorna uma lista de notícias recentes relacionadas à empresa. Ele fornece manchetes, datas e links para artigos sobre a empresa cujas ações são negociadas na bolsa',
+#                 'parameters': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'ticker': {
+#                             'type': 'string',
+#                             'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
+#                         }
+#                     }
+#                 }
+#             }
+#         },
         
         
-        {'type': 'code_interpreter'}
+#         {
+#             'type': 'function',
+#             'function': {
+#                 'name': 'retorna_desdobramentos',
+#                 'description': 'retorna uma série temporal contendo os históricos de desdobramentos (splits) de ações de uma empresa. Ele fornece as datas e as razões dos splits ocorridos ao longo do tempo para uma determinada ação listada na bolsa.',
+#                 'parameters': {
+#                     'type': 'object',
+#                     'properties': {
+#                         'ticker': {
+#                             'type': 'string',
+#                             'description': 'O ticker da ação. Exemplo: "ABEV3.SA" para ambev, "PETR4.SA" para petrobras, etc'
+#                         }
+#                     }
+#                 }
+#             }
+#         },
         
         
-        ]
+#         {'type': 'code_interpreter'}
+        
+        
+#         ]
     
-    return tools
+#     return tools
 
 
-@st.cache_resource
-def criaAssistant(modelo):
-    assistant = client.beta.assistants.create(
-        name="Assistente Financeiro",
-        instructions="Você é um assistente pessoal de investimentos especializado na área de ações da bolsa de valores do Brasil. \
-                    Sua função é responder perguntas dos usuários relacionadas ao mercado de ações brasileiro. Utilize as \
-                    ferramentas e funções disponíveis, juntamente com a API Yfinance, para fornecer respostas precisas e \
-                    relevantes. Certifique-se de oferecer informações atualizadas e insights úteis para auxiliar os usuários em \
-                    suas decisões de investimento. Priorize a clareza e a precisão em suas respostas, garantindo uma experiência \
-                    satisfatória para os usuários que buscam orientação no mercado de ações brasileiro.",
-        model = st.session_state['modelo'],
-        tools=dispoe_tools()
-        ) 
-    return assistant.id
+# @st.cache_resource
+# def criaAssistant(modelo):
+#     assistant = client.beta.assistants.create(
+#         name="Assistente Financeiro",
+#         instructions="Você é um assistente pessoal de investimentos especializado na área de ações da bolsa de valores do Brasil. \
+#                     Sua função é responder perguntas dos usuários relacionadas ao mercado de ações brasileiro. Utilize as \
+#                     ferramentas e funções disponíveis, juntamente com a API Yfinance, para fornecer respostas precisas e \
+#                     relevantes. Certifique-se de oferecer informações atualizadas e insights úteis para auxiliar os usuários em \
+#                     suas decisões de investimento. Priorize a clareza e a precisão em suas respostas, garantindo uma experiência \
+#                     satisfatória para os usuários que buscam orientação no mercado de ações brasileiro.",
+#         model = st.session_state['modelo'],
+#         tools=dispoe_tools()
+#         ) 
+#     return assistant.id
 
 
 
@@ -454,8 +454,11 @@ def tab_configuracoes(tab):
     modelo_escolhido = tab.selectbox('Selecione o modelo',
                                      ['gpt-3.5-turbo', 'gpt-4'])
     st.session_state['modelo'] = modelo_escolhido
-    st.session_state.id_assistant = criaAssistant(modelo_escolhido)
 
+    if (modelo_escolhido == "gpt-3.5-turbo"):
+        st.session_state.id_assistant = "asst_zH3fnRmniBiWJkzLiu3sTplM"
+    elif (modelo_escolhido == "gpt-4"):
+        st.session_state.id_assistant = "asst_VTWGUwSpjMaLV3XDHgb61Gk7"
 
 
 
