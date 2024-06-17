@@ -17,8 +17,24 @@ def iniciaClient():
     return client
 
 
-
 client = iniciaClient()
+
+
+# @st.cache_resource
+# def criaAssistant(modelo):
+#     assistant = client.beta.assistants.create(
+#         name="Assistente Financeiro",
+#         instructions="Você é um assistente pessoal de investimentos especializado na área de ações da bolsa de valores do Brasil. \
+#                     Sua função é responder perguntas dos usuários relacionadas ao mercado de ações brasileiro. Utilize as \
+#                     ferramentas e funções disponíveis, juntamente com a API Yfinance, para fornecer respostas precisas e \
+#                     relevantes. Certifique-se de oferecer informações atualizadas e insights úteis para auxiliar os usuários em \
+#                     suas decisões de investimento. Priorize a clareza e a precisão em suas respostas, garantindo uma experiência \
+#                     satisfatória para os usuários que buscam orientação no mercado de ações brasileiro.",
+#         model = st.session_state['modelo'],
+#         tools=dispoe_tools()
+#         ) 
+#     return assistant.id
+
 
 
 
